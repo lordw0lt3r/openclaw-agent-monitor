@@ -27,11 +27,13 @@ The monitor renders a small, frameless **always-on-top window** on your Linux de
 4. The tkinter overlay updates every 500ms — showing each agent as `WORKING` or `SLEEPING`.
 
 **Agent names** are read from:
+
 ```
 openclaw.json → agents.list[].id
 ```
 
 **Agent activity** is tracked via:
+
 ```
 agents/<id>/sessions/sessions.json  →  last modified timestamp
 ```
@@ -96,6 +98,7 @@ chmod +x setup.sh start.sh
 ```
 
 The setup script will automatically:
+
 - Create a Python virtual environment (`.venv/`)
 - Install all dependencies from `requirements.txt`
 - Ask for your **Podman shared volume host path** and write `config.yaml`
@@ -125,7 +128,7 @@ shared_folder_path: "/your/host/path/.openclaw"
 json_filename: "openclaw.json"
 
 # Seconds of inactivity before an agent is shown as SLEEPING
-activity_timeout: 10
+activity_timeout: 5
 
 # Monitor window settings
 window:
@@ -162,15 +165,15 @@ sudo setfacl -R -m u:$(whoami):rX /your/shared/folder/
 
 ## Usage
 
-| Action | How |
-|---|---|
-| Move the window | Left-click and drag |
-| Close the monitor | Right-click anywhere on the window |
+| Action            | How                                                      |
+| ----------------- | -------------------------------------------------------- |
+| Move the window   | Left-click and drag                                      |
+| Close the monitor | Right-click anywhere on the window                       |
 | Regenerate assets | `source .venv/bin/activate && python generate_assets.py` |
 
 ---
 
-## Autostart (Manjaro / systemd desktops)
+## Autostart (Manjaro / systemd desktops) - Experimental!
 
 Create a `.desktop` file to launch the monitor automatically on login:
 
@@ -191,12 +194,12 @@ EOF
 
 ## Dependencies
 
-| Package | Purpose |
-|---|---|
-| `watchdog` | Event-driven file system monitoring |
-| `pillow` | Pixel-art sprite generation and rendering |
-| `PyYAML` | Loads `config.yaml` |
-| `tkinter` | Borderless always-on-top GUI (stdlib) |
+| Package    | Purpose                                   |
+| ---------- | ----------------------------------------- |
+| `watchdog` | Event-driven file system monitoring       |
+| `pillow`   | Pixel-art sprite generation and rendering |
+| `PyYAML`   | Loads `config.yaml`                       |
+| `tkinter`  | Borderless always-on-top GUI (stdlib)     |
 
 ---
 

@@ -11,7 +11,7 @@ shared_folder_path: "/path/to/your/shared/volume"
 json_filename: "openclaw.json"
 
 # Seconds of inactivity before an agent is shown as SLEEPING
-activity_timeout: 10
+activity_timeout: 5
 
 # Monitor window settings
 window:

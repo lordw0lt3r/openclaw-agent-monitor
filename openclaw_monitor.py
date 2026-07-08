@@ -46,7 +46,7 @@ def update_agent_list():
                 agent_id = agent.get("id")
                 if agent_id and agent_id not in agent_states:
                     agent_states[agent_id] = 0.0  # Starts as SLEEPING
-    except json.JSONDecodeError as e:
+    except json5.JSONDecodeError as e:
         print(f"[Error] Invalid JSON syntax in {JSON_FILENAME}: {e}")
     except PermissionError as e:
         print(f"[Error] Cannot read file (check :Z volume permissions): {e}")
