@@ -1,5 +1,7 @@
 # Path settings
-shared_folder: "/path/to/your/SHARED_FOLDER" # Replace with your actual Manjaro host path
+shared_folder_path: "/home/user/.openclaw" # Replace with your actual Manjaro host path
+json_filename: "openclaw.json"
+activity_timeout: 10
 
 # Window settings
 window:
