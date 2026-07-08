@@ -2,7 +2,7 @@
 openclaw_monitor.py
 
 Main entry point for the OpenClaw Agent Monitor.
-Monitors a shared Podman volume for an openclaw.json file via watchdog
+Monitors a shared Podman volume for agent activity via watchdog
 and displays a borderless, always-on-top status widget on a Linux desktop
 using tkinter + Pillow. Right-click the window to close.
 """
@@ -10,7 +10,6 @@ using tkinter + Pillow. Right-click the window to close.
 import os
 import time
 import yaml
-import json5
 import tkinter as tk
 from PIL import Image, ImageTk
 from watchdog.observers import Observer
@@ -25,33 +24,30 @@ def load_config():
 
 CONFIG        = load_config()
 SHARED_FOLDER = CONFIG["shared_folder_path"]
-JSON_FILENAME = CONFIG.get("json_filename", "openclaw.json")
 TIMEOUT       = CONFIG.get("activity_timeout", 10)
+
+# UI constants
+AGENT_COL_WIDTH = 90   # px per agent column
+WINDOW_H        = 110  # fixed window height
+SIDE_PADDING    = 20   # horizontal padding
+MIN_WIDTH       = 220  # minimum window width (empty state)
 
 agent_states = {}  # { agent_id: last_active_timestamp }
 
 
-# --- 2. OPENCLAW.JSON PARSER ---
-def update_agent_list():
-    json_path = os.path.join(SHARED_FOLDER, JSON_FILENAME)
-    if not os.path.exists(json_path):
+# --- 2. FILESYSTEM AGENT DISCOVERY ---
+def discover_agents():
+    """Scans the agents/ subdirectory to find all known agents.
+    No JSON parsing needed — agent IDs are the folder names themselves."""
+    agents_dir = os.path.join(SHARED_FOLDER, "agents")
+    if not os.path.isdir(agents_dir):
+        print(f"[Monitor] agents/ directory not found in: {SHARED_FOLDER}")
         return
 
-    try:
-        with open(json_path, "r") as f:
-            data = json5.load(f)
-            agents_block = data.get("agents", {})
-            agent_list = agents_block.get("list", [])
-            for agent in agent_list:
-                agent_id = agent.get("id")
-                if agent_id and agent_id not in agent_states:
-                    agent_states[agent_id] = 0.0  # Starts as SLEEPING
-    except json5.JSONDecodeError as e:
-        print(f"[Error] Invalid JSON syntax in {JSON_FILENAME}: {e}")
-    except PermissionError as e:
-        print(f"[Error] Cannot read file (check :Z volume permissions): {e}")
-    except Exception as e:
-        print(f"[Error] Unexpected error reading {JSON_FILENAME}: {e}")
+    for entry in os.scandir(agents_dir):
+        if entry.is_dir() and entry.name not in agent_states:
+            agent_states[entry.name] = 0.0  # Registered as SLEEPING
+            print(f"[Monitor] Discovered agent: '{entry.name}'")
 
 
 # --- 3. EVENT-DRIVEN FILE WATCHER ---
@@ -60,26 +56,37 @@ class OpenClawHandler(FileSystemEventHandler):
         if event.is_directory:
             return
 
-        normalized_path = os.path.normpath(event.src_path)
-        relative_path   = os.path.relpath(normalized_path, SHARED_FOLDER)
-        path_parts      = relative_path.split(os.sep)
+        normalized = os.path.normpath(event.src_path)
+        relative   = os.path.relpath(normalized, SHARED_FOLDER)
+        parts      = relative.split(os.sep)
 
-        # Refresh agent list when the main JSON config changes
-        if path_parts == [JSON_FILENAME]:
-            update_agent_list()
+        # Activity inside agents/<id>/ → mark agent as WORKING
+        if len(parts) >= 2 and parts[0] == "agents":
+            agent_id = parts[1]
+            # Auto-register agent if not yet known (e.g. new agent added at runtime)
+            if agent_id not in agent_states:
+                print(f"[Monitor] New agent detected at runtime: '{agent_id}'")
+            agent_states[agent_id] = time.time()
+
+    def on_created(self, event):
+        """Catches new agent folders created at runtime."""
+        if not event.is_directory:
             return
 
-        # Mark agent as active when something inside agents/<id>/ changes
-        if len(path_parts) >= 2 and path_parts[0] == "agents":
-            agent_id = path_parts[1]
-            agent_states[agent_id] = time.time()
-            print(f"[Monitor] Activity detected: '{agent_id}'")
+        normalized = os.path.normpath(event.src_path)
+        relative   = os.path.relpath(normalized, SHARED_FOLDER)
+        parts      = relative.split(os.sep)
+
+        if len(parts) == 2 and parts[0] == "agents":
+            agent_id = parts[1]
+            if agent_id not in agent_states:
+                agent_states[agent_id] = 0.0
+                print(f"[Monitor] New agent folder created: '{agent_id}'")
 
 
 def start_file_watcher():
     observer = Observer()
-    handler  = OpenClawHandler()
-    observer.schedule(handler, path=SHARED_FOLDER, recursive=True)
+    observer.schedule(OpenClawHandler(), path=SHARED_FOLDER, recursive=True)
     observer.start()
     print(f"[Monitor] Watching: {SHARED_FOLDER}")
     return observer
@@ -88,22 +95,20 @@ def start_file_watcher():
 # --- 4. GRAPHICAL USER INTERFACE (TKINTER) ---
 class MonitorApp:
     def __init__(self, root):
-        self.root    = root
-        win_cfg      = CONFIG.get("window", {})
+        self.root         = root
+        self._last_count  = 0  # Track agent count changes for resize
+        win_cfg           = CONFIG.get("window", {})
 
-        w = win_cfg.get("width", 600)
-        h = win_cfg.get("height", 150)
         x = win_cfg.get("position_x", 100)
         y = win_cfg.get("position_y", 100)
 
-        self.root.geometry(f"{w}x{h}+{x}+{y}")
+        self.root.geometry(f"{MIN_WIDTH}x{WINDOW_H}+{x}+{y}")
         self.root.configure(bg="#0a0a0a")
         self.root.overrideredirect(True)
         if win_cfg.get("always_on_top", True):
             self.root.attributes("-topmost", True)
 
-        # Right-click to close, left-click drag to move
-        self.root.bind("<Button-3>",  lambda e: self.close_app())
+        self.root.bind("<Button-3>",      lambda e: self.close_app())
         self.root.bind("<ButtonPress-1>", self._drag_start)
         self.root.bind("<B1-Motion>",     self._drag_motion)
         self._drag_x = 0
@@ -137,6 +142,20 @@ class MonitorApp:
         new_y = self.root.winfo_y() + (event.y - self._drag_y)
         self.root.geometry(f"+{new_x}+{new_y}")
 
+    # --- Dynamic Window Resize ---
+    def _resize_window(self):
+        count = len(agent_states)
+        if count == self._last_count:
+            return  # Nothing changed, skip resize
+        self._last_count = count
+
+        new_w = max(count * AGENT_COL_WIDTH + SIDE_PADDING, MIN_WIDTH)
+        # Preserve current X/Y position
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        self.root.geometry(f"{new_w}x{WINDOW_H}+{x}+{y}")
+        print(f"[Monitor] Window resized to {new_w}x{WINDOW_H} for {count} agent(s).")
+
     # --- Asset Loading ---
     def load_assets(self):
         assets = {"working": [], "sleeping": [], "fallback": False}
@@ -153,25 +172,30 @@ class MonitorApp:
 
     # --- Main UI Update Loop (every 500ms) ---
     def update_ui(self):
-        update_agent_list()
-        current_time = time.time()
+        discover_agents()
+        current_time     = time.time()
         self.frame_index = (self.frame_index + 1) % 2
 
+        # Show/hide empty state
         if agent_states:
             self.empty_label.pack_forget()
         else:
             self.empty_label.pack(expand=True)
 
+        # Resize window if agent count changed
+        self._resize_window()
+
         for idx, agent_id in enumerate(sorted(agent_states.keys())):
             last_active = agent_states[agent_id]
             is_active   = last_active > 0 and (current_time - last_active) < TIMEOUT
 
+            # Create widget on first appearance
             if agent_id not in self.agent_widgets:
-                frame = tk.Frame(self.main_frame, bg="#0a0a0a", width=80)
-                frame.grid(row=0, column=idx, padx=10)
+                frame = tk.Frame(self.main_frame, bg="#0a0a0a", width=AGENT_COL_WIDTH)
+                frame.grid(row=0, column=idx, padx=5)
 
                 img_lbl = tk.Label(frame, bg="#0a0a0a")
-                img_lbl.pack(pady=(0, 5))
+                img_lbl.pack(pady=(0, 4))
 
                 status_lbl = tk.Label(frame, font=("Courier", 10, "bold"), bg="#0a0a0a")
                 status_lbl.pack()
@@ -183,16 +207,18 @@ class MonitorApp:
 
                 self.agent_widgets[agent_id] = {"img": img_lbl, "status": status_lbl}
 
+            # Update sprite and status label
             widgets = self.agent_widgets[agent_id]
 
             if not self.assets["fallback"]:
                 img = self.assets["working"][self.frame_index] if is_active else self.assets["sleeping"][self.frame_index]
                 widgets["img"].configure(image=img)
-                widgets["img"].image = img  # Prevent garbage collection
+                widgets["img"].image = img
 
-            status_text  = "WORKING"  if is_active else "SLEEPING"
-            status_color = "#00f5d4" if is_active else "#6c757d"
-            widgets["status"].configure(text=status_text, fg=status_color)
+            widgets["status"].configure(
+                text  = "WORKING"  if is_active else "SLEEPING",
+                fg    = "#00f5d4" if is_active else "#6c757d"
+            )
 
         self.root.after(500, self.update_ui)
 
@@ -207,7 +233,7 @@ if __name__ == "__main__":
     print("[Monitor] Right-click the window to exit.")
 
     watcher_observer = start_file_watcher()
-    update_agent_list()  # Initial parse on startup
+    discover_agents()  # Initial scan on startup
 
     root = tk.Tk()
     app  = MonitorApp(root)
