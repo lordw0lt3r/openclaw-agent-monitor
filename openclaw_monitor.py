@@ -10,7 +10,7 @@ using tkinter + Pillow. Right-click the window to close.
 import os
 import time
 import yaml
-import json
+import json5
 import tkinter as tk
 from PIL import Image, ImageTk
 from watchdog.observers import Observer
@@ -39,7 +39,7 @@ def update_agent_list():
 
     try:
         with open(json_path, "r") as f:
-            data = json.load(f)
+            data = json5.load(f)
             agents_block = data.get("agents", {})
             agent_list = agents_block.get("list", [])
             for agent in agent_list:

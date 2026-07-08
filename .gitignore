@@ -3,51 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
-
 # Distribution / packaging
-.Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
 
 # Virtual Environments
 .env
@@ -55,8 +16,6 @@ coverage.xml
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
 # IDEs
 .vscode/
@@ -68,5 +27,14 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# Project-specific
-config.local.yaml
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OpenClaw Monitor — local config (use config.example.yaml instead)
+config.yaml
+
+# Assets (generated locally via generate_assets.py — not versioned)
+assets/*.png
+assets/*.gif

@@ -1,0 +1,22 @@
+# OpenClaw Agent Monitor - Configuration
+# Copy this file to config.yaml and adjust the values below.
+# config.yaml is listed in .gitignore and will NOT be committed.
+
+# HOST path of your Podman shared volume
+# Must match the left side of your -v mount:
+#   -v "${SHARED_FOLDER}:/home/openclaw/.openclaw:Z"
+shared_folder_path: "/path/to/your/shared/volume"
+
+# Name of the JSON config file written by OpenClaw
+json_filename: "openclaw.json"
+
+# Seconds of inactivity before an agent is shown as SLEEPING
+activity_timeout: 10
+
+# Monitor window settings
+window:
+  width: 600
+  height: 150
+  position_x: 100
+  position_y: 100
+  always_on_top: true
