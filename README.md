@@ -8,14 +8,14 @@
 
 **OpenClaw Agent Monitor** is a minimal Python desktop tool that observes the status of running OpenClaw agents in real time. It works by watching a **Podman Shared Volume** — a folder mounted into one or more containers — for JSON status files written by each agent. When a file changes, the monitor updates its display instantly.
 
-The monitor renders a small, **always-on-top window** on your Linux desktop (via `pygame` or `tkinter`) so you always have a live overview of your agents without switching windows.
+The monitor renders a small, **always-on-top window** on your Linux desktop (via `tkinter`) so you always have a live overview of your agents without switching windows.
 
 ---
 
 ## How It Works
 
 ```
-┌─────────────────────┐        watches         ┌──────────────────────┐
+┌─────────────────────┐        watches          ┌──────────────────────┐
 │  OpenClaw Agents    │ ──── JSON files ──────▶ │  openclaw_monitor.py │
 │  (Podman Container) │   (shared volume)       │  (Desktop Overlay)   │
 └─────────────────────┘                         └──────────────────────┘
@@ -31,8 +31,9 @@ The monitor renders a small, **always-on-top window** on your Linux desktop (via
 
 ```
 openclaw-agent-monitor/
-├── openclaw_monitor.py   # Main application entry point
-├── assets/               # GIF animations and UI assets
+├── openclaw_monitor.py   # Main application entry point (Tkinter GUI)
+├── generate_assets.py    # Script to generate pixel-art animation frames
+├── assets/               # Generated PNG animation frames and UI assets
 ├── config.yaml           # Configuration (paths, window position)
 ├── requirements.txt      # Python dependencies
 └── .gitignore
@@ -57,17 +58,23 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure
+### 3. Generate the Animation Assets
+
+Before running the monitor for the first time, generate the pixel-art frames:
+
+```Bash
+python generate_assets.py
+```
+
+### 4. Configure
 
 Edit `config.yaml` and set the `shared_folder_path` to the path of your Podman shared volume mount.
 
 ```yaml
-shared_folder_path: "/run/user/1000/podman/volumes/openclaw_shared"
-window_position_x: 0
-window_position_y: 0
+shared_folder_path: "/user/openclaw/volumes/openclaw_shared"
 ```
 
-### 4. Run
+### 5. Run
 
 ```bash
 python openclaw_monitor.py
@@ -77,10 +84,11 @@ python openclaw_monitor.py
 
 ## Dependencies
 
-| Package    | Purpose                                      |
-|------------|----------------------------------------------|
-| `watchdog` | Monitors the shared folder for file changes  |
-| `pygame`   | Renders the always-on-top desktop overlay    |
+| Package    | Purpose                                                   |
+| ---------- | --------------------------------------------------------- |
+| `watchdog` | Monitors the shared folder for file changes               |
+| `pillow`   | Handles and processes the pixel-art images inside the GUI |
+| `PyYAML`   | Parses the config.yaml configuration file                 |
 
 ---
 
