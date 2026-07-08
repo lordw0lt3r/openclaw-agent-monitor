@@ -1,0 +1,8 @@
+# OpenClaw Agent Monitor - Configuration
+
+# Path to the shared folder (Podman volume mount point) containing agent JSON files
+shared_folder_path: "/path/to/shared/volume"
+
+# Position of the always-on-top monitor window on screen (in pixels)
+window_position_x: 0
+window_position_y: 0
