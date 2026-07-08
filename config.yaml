@@ -1,8 +1,13 @@
-# OpenClaw Agent Monitor - Configuration
+# Path settings
+shared_folder: "/path/to/your/SHARED_FOLDER" # Replace with your actual Manjaro host path
 
-# Path to the shared folder (Podman volume mount point) containing agent JSON files
-shared_folder_path: "/path/to/shared/volume"
+# Window settings
+window:
+  width: 600
+  height: 150
+  position_x: 100 # Pixel offset from the left of the screen
+  position_y: 100 # Pixel offset from the top of the screen
+  always_on_top: true
 
-# Position of the always-on-top monitor window on screen (in pixels)
-window_position_x: 0
-window_position_y: 0
+# Activity settings
+activity_timeout: 10 # Seconds an agent remains "active" after a file modification
