@@ -10,6 +10,8 @@
 
 The monitor renders a small, frameless **always-on-top window** on your Linux desktop (tkinter + Pillow) — no browser, no terminal, no overhead.
 
+<img width="467" height="88" alt="image" src="https://github.com/user-attachments/assets/c99b22a5-e5e5-4803-bba9-a494c63374e5" />
+
 ---
 
 ## How It Works
